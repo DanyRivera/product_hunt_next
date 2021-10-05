@@ -39,7 +39,7 @@ const useValidacion = (stateInicial, validar, fn) => {
         e.preventDefault();
         const erroresValidacion = validar(valores);
         setErrores(erroresValidacion);
-        setSubmitForm(true);
+        // setSubmitForm(true);
     }
 
     return{
