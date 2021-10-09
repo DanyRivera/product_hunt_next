@@ -92,6 +92,9 @@ const Header = () => {
 
                                 <Boton
                                     bgColor='true'
+                                    css={css`
+                                        margin-right: 2rem;
+                                    `}
                                 >Login</Boton>
 
                             </Link>

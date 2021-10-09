@@ -151,7 +151,7 @@ const Producto = () => {
             return router.push('/login');
         }
 
-        if(creador.id === usuario.uid) {
+        if(creador.id !== usuario.uid) {
             return router.push('/');
         }
 
