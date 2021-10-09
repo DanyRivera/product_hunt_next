@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useContext, useState } from 'react';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow';
 import { es } from 'date-fns/locale';
@@ -7,7 +8,8 @@ import styled from '@emotion/styled';
 import Layout from '../../components/layout/Layout';
 import { FirebaseContext } from '../../firebase';
 import Error404 from '../../components/layout/404';
-import {Campo, InputSubmit} from '../../components/ui/Formularios'
+import { Campo, InputSubmit } from '../../components/ui/Formularios'
+import Boton from '../../components/ui/Boton';
 
 
 const ContenedorProducto = styled.div`
@@ -22,9 +24,9 @@ const Producto = () => {
 
     //State del componente
     const [producto, setProducto] = useState({});
-    const [error, setError] = useState(false); 
+    const [error, setError] = useState(false);
 
-    const { firebase } = useContext(FirebaseContext);
+    const { firebase, usuario } = useContext(FirebaseContext);
 
     //Routing para obtener el id actual
     const router = useRouter();
@@ -38,7 +40,7 @@ const Producto = () => {
             const obtenerProducto = async () => {
                 const productoQuery = await firebase.db.collection('productos').doc(id);
                 const producto = await productoQuery.get();
-                if(producto.exists) {
+                if (producto.exists) {
                     setProducto(producto.data());
                 } else {
                     setError(true);
@@ -46,16 +48,41 @@ const Producto = () => {
             }
             obtenerProducto();
         }
-    }, [id]);
+    }, [id, producto]);
 
-    if(Object.keys(producto).length === 0) return 'Cargando...';
+    if (Object.keys(producto).length === 0) return 'Cargando...';
 
-    const { comentarios, creado, descripcion, empresa, nombre, url, urlImagen, votos } = producto;
+    const { comentarios, creado, descripcion, empresa, nombre, url, urlImagen, votos, creador, haVotado } = producto;
+
+    //Administrar y validar los votos
+    const votarProducto = () => {
+        if(!usuario) {
+            return router.push('/');
+        }
+
+        //Obtener y sumar un nuevo voto
+        const nuevoTotal = votos + 1;
+
+        //Verificar si el usuario actual a votado
+        if(haVotado.includes(usuario.uid)) return;
+
+        //Guardar el ID del usuario que ha votado
+        const nuevoHaVotado = [...haVotado, usuario.uid]
+
+        //Actualizar en la DB
+        firebase.db.collection('productos').doc(id).update({ votos: nuevoTotal, haVotado: nuevoHaVotado })
+
+        //Actualizar en el state
+        setProducto({
+            ...producto,
+            votos: nuevoTotal
+        })
+    }
 
     return (
         <Layout>
             <>
-                { error && <Error404/> }
+                {error && <Error404 />}
 
                 <div className="contenedor">
                     <h1
@@ -69,25 +96,31 @@ const Producto = () => {
                         <div>
                             <p>Publicado hace: {formatDistanceToNow(new Date(creado), { locale: es })}</p>
 
+                            <p>Por: {creador.nombre} de {empresa}</p>
+
                             <img src={urlImagen} alt="imagen producto" />
 
                             <p>{descripcion}</p>
 
-                            <h2>Agrega un Comentario</h2>
+                            {usuario && (
+                                <>
+                                    <h2>Agrega un Comentario</h2>
 
-                            <form>
-                                <Campo>
-                                    <input 
-                                        type="text" 
-                                        name="mensaje"
-                                    />
-                                </Campo>
+                                    <form>
+                                        <Campo>
+                                            <input
+                                                type="text"
+                                                name="mensaje"
+                                            />
+                                        </Campo>
 
-                                <InputSubmit 
-                                    type="submit"
-                                    value="Agregar Comentario"
-                                />
-                            </form>
+                                        <InputSubmit
+                                            type="submit"
+                                            value="Agregar Comentario"
+                                        />
+                                    </form>
+                                </>
+                            )}
 
                             <h2
                                 css={css`
@@ -95,7 +128,7 @@ const Producto = () => {
                                 `}
                             >Comentarios</h2>
 
-                            {comentarios.map( comentario => (
+                            {comentarios.map(comentario => (
                                 // eslint-disable-next-line react/jsx-key
                                 <li>
                                     <p>{comentario.nombre}</p>
@@ -105,7 +138,33 @@ const Producto = () => {
                         </div>
 
                         <aside>
-                            2
+                            <Boton
+                                target="_blank"
+                                bgColor="true"
+                                href={url}
+                            >Visitar la URL</Boton>
+
+                            <div
+                                css={css`
+                                    margin-top: 5rem;
+                                `}
+                            >
+
+                                <p
+                                    css={css`
+                                        text-align: center;
+                                    `}
+                                >{votos} Votos</p>
+
+                                {usuario && (
+                                    <Boton
+                                        onClick={votarProducto}
+                                    >
+                                        Votar
+                                    </Boton>
+                                )}
+
+                            </div>
                         </aside>
                     </ContenedorProducto>
                 </div>
